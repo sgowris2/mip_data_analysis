@@ -32,8 +32,8 @@ def task_evidence_stats(df: pd.DataFrame, plot_title_string='Untitled', output_d
     counts_project_task = df.groupby([df.project_title, df.tasks]).nunique()
     counts_project_task['task_or_project_evidence'] = \
         counts_project_task['task_evidence'] + counts_project_task['project_evidence']
-
     task_counts = df.groupby([df.project_title, df.tasks]).agg({'uuid': 'count'})
+
     # Remove the custom tasks added by users and only retain the original task description that is used by most users
     threshold = sum(task_counts.uuid) * 0.025
     default_tasks = task_counts[task_counts['uuid'] > threshold]
@@ -50,21 +50,21 @@ def task_evidence_stats(df: pd.DataFrame, plot_title_string='Untitled', output_d
         percent_teacher_tasks_with_evidence[str(t)] = task_evidence_percent
 
     result = {
-        'no_of_states': df.declared_state.nunique(),
-        'states': list(df['declared_state'].dropna().unique()),
-        'no_of_districts': df['state-district'].nunique(),
-        'districts': list(df['state-district'].dropna().unique()),
-        'no_of_blocks': df['state-district-block'].nunique(),
-        'blocks': list(df['state-district-block'].dropna().unique()),
+        'activities': list(df['project_title'].dropna().unique()),
+        'no_of_default_tasks_for_activity': len(default_tasks.index),
         'no_of_users': df.uuid.nunique(),
         'no_of_teachers': df[df.user_type == 'teacher']['uuid'].nunique(),
         'no_of_administrators': df[df.user_type == 'administrator']['uuid'].nunique(),
         'no_of_projects': counts_teacher_project.shape[0],
-        'projects': list(df['project_title'].dropna().unique()),
+        'no_of_projects_with_evidence': len(counts_teacher_project[counts_teacher_project['task_or_project_evidence'] > 0]),
+        'total_no_of_tasks_across_all_projects': df.shape[0],
+        'no_of_tasks_with_evidence': len(df[pd.notna(df['task_evidence']) | pd.notna(df['project_evidence'])]),
+        'no_of_states': df.declared_state.nunique(),
+        'no_of_districts': df['state-district'].nunique(),
+        'no_of_blocks': df['state-district-block'].nunique(),
         'no_of_projects_by_state': state_projects,
         'no_of_projects_by_district': district_projects,
         'no_of_projects_by_block': block_projects,
-        'no_of_default_tasks': len(default_tasks.index)
     }
 
     if create_plots:

@@ -51,4 +51,4 @@ if __name__ == '__main__':
         if filename.endswith('.csv'):
             df = load_and_normalize_file(directory, filename)
             run_analysis(df, title=filename.replace('.csv', '').strip(),
-                         create_plots=True, show_plots=False, save_plots=True)
+                         create_plots=False, show_plots=False, save_plots=False)
