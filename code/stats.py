@@ -15,7 +15,9 @@ def dataset_stats(df: pd.DataFrame):
         'column_stats': [{x: {'count': int(column_stats.loc['count'][x]),
                               'unique': int(column_stats.loc['unique'][x]),
                               'most_common': column_stats.loc['top'][x],
-                              'most_common_no_instances': int(column_stats.loc['freq'][x])}} for x in column_stats],
+                              # 'most_common_no_instances': int(column_stats.loc['freq'][x])
+                              }} for x in column_stats
+                         ],
     }
     return result
 
@@ -49,28 +51,25 @@ def task_evidence_stats(df: pd.DataFrame, plot_title_string='Untitled', output_d
 
     result = {
         'no_of_states': df.declared_state.nunique(),
-        'states': list(set(df.declared_state)),
+        'states': list(df['declared_state'].dropna().unique()),
         'no_of_districts': df['state-district'].nunique(),
-        'districts': list(set(df['state-district'])),
+        'districts': list(df['state-district'].dropna().unique()),
         'no_of_blocks': df['state-district-block'].nunique(),
-        'blocks': list(set(df['state-district-block'])),
+        'blocks': list(df['state-district-block'].dropna().unique()),
         'no_of_users': df.uuid.nunique(),
         'no_of_teachers': df[df.user_type == 'teacher']['uuid'].nunique(),
         'no_of_administrators': df[df.user_type == 'administrator']['uuid'].nunique(),
         'no_of_projects': counts_teacher_project.shape[0],
-        'projects': list(set(df.project_title)),
+        'projects': list(df['project_title'].dropna().unique()),
         'no_of_projects_by_state': state_projects,
         'no_of_projects_by_district': district_projects,
         'no_of_projects_by_block': block_projects,
-        'no_of_default_tasks': len(default_tasks.index),
-        'histogram_of_tasks_submitted_per_teacher-project': histogram_submitted_tasks,
-        'histogram_of_evidences_submitted_per_teacher-project': histogram_submitted_evidences,
-        'percent_teachers_who_submitted_evidence_by_task': percent_teacher_tasks_with_evidence
+        'no_of_default_tasks': len(default_tasks.index)
     }
 
     if create_plots:
         # Plot project engagement
-        plot_project_engagement(task_data=result['histogram_of_evidences_submitted_per_teacher-project'],
+        plot_project_engagement(task_data=histogram_submitted_evidences,
                                 no_of_default_tasks=result['no_of_default_tasks'],
                                 projects=result['projects'],
                                 states=result['states'],
@@ -81,7 +80,7 @@ def task_evidence_stats(df: pd.DataFrame, plot_title_string='Untitled', output_d
                                 show=show_plots,
                                 save=save_plots)
         # Plot task-wise engagement
-        plot_task_wise_engagement(task_data=result['percent_teachers_who_submitted_evidence_by_task'],
+        plot_task_wise_engagement(task_data=percent_teacher_tasks_with_evidence,
                                   projects=result['projects'],
                                   states=result['states'],
                                   districts=result['districts'],
@@ -94,27 +93,12 @@ def task_evidence_stats(df: pd.DataFrame, plot_title_string='Untitled', output_d
     return result
 
 
-def plot_task_wise_engagement(task_data, projects, states, districts, blocks, title_string, output_dir,
-                              show=True, save=False):
-    if len(projects) > 1: projects = len(projects)
-    if len(states) > 1: states = len(states)
-    if len(districts) > 1: districts = len(districts)
-    if len(blocks) > 1: blocks = len(blocks)
-    sorted_items = sorted(task_data.items(), key=lambda item: item[0], reverse=True)  # Sort by keys
-    sorted_keys, sorted_values = zip(*sorted_items)
-    fig3, ax3 = plt.subplots(figsize=(12, 8))
-    fig3.suptitle('Task-wise Engagement\nProject(s): {}\nState(s): {}  |  District(s): {}  |  Block(s): {}'.format(projects, states, districts, blocks))
-    colors = ['red' if task_data[x] <= 30 else ('orange' if task_data[x] <= 60 else 'green') for x in sorted_keys]
-    ax3.barh(sorted_keys, sorted_values, color=colors)
-    ax3.set_title('Evidence submission by Task')
-    ax3.set_xlabel('Percent of Teachers who submitted at least one Evidence')
-    ax3.set_ylabel('Task')
-    fig3.subplots_adjust(top=0.836, bottom=0.1, left=0.675, right=0.95, wspace=0.2, hspace=0.2)
-    if save:
-        plt.savefig(os.path.join(output_dir, '{}_{}.png'.format(title_string, 'TaskEngagement')),
-                    format='png', dpi=300)
-    if show:
-        plt.show()
+def plot_district_participation():
+    pass
+
+
+def plot_block_participation():
+    pass
 
 
 def plot_project_engagement(task_data, no_of_default_tasks, projects, states, districts, blocks, title_string, output_dir,
@@ -126,8 +110,8 @@ def plot_project_engagement(task_data, no_of_default_tasks, projects, states, di
     if len(blocks) > 1: blocks = len(blocks)
     keys = task_data.keys()
     values = task_data.values()
-    fig2, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
-    fig2.suptitle('User Engagement Distribution\nProject: {}\nState(s): {}  |  District(s): {}  |  Block(s): {}'.format(projects, states, districts, blocks))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 8))
+    fig.suptitle('User Engagement Distribution\nProject: {}\nState(s): {}  |  District(s): {}  |  Block(s): {}'.format(projects, states, districts, blocks))
     low_engagement_threshold = round(0.4 * no_of_default_tasks, 0)
     med_engagement_threshold = round(0.8 * no_of_default_tasks, 0)
     colors = ['red' if x <= low_engagement_threshold else ('orange' if x <= med_engagement_threshold else 'green') for x
@@ -150,11 +134,42 @@ def plot_project_engagement(task_data, no_of_default_tasks, projects, states, di
             startangle=140)
     ax2.axis('equal')
     ax2.set_title('Engagement Percentages')
-    fig2.subplots_adjust(top=0.836, bottom=0.1, left=0.125, right=0.9, wspace=0.4, hspace=0.2)
+    fig.subplots_adjust(top=0.836, bottom=0.1, left=0.125, right=0.9, wspace=0.4, hspace=0.2)
     if save:
         plt.savefig(os.path.join(output_dir, '{}_{}.png'.format(title_string, 'ProjectEngagement')), format='png', dpi=300)
     if show:
         plt.show()
+
+
+def plot_task_wise_engagement(task_data, projects, states, districts, blocks, title_string, output_dir,
+                              show=True, save=False):
+    if len(projects) > 1: projects = len(projects)
+    if len(states) > 1: states = len(states)
+    if len(districts) > 1: districts = len(districts)
+    if len(blocks) > 1: blocks = len(blocks)
+    sorted_items = sorted(task_data.items(), key=lambda item: item[0], reverse=True)  # Sort by keys
+    sorted_keys, sorted_values = zip(*sorted_items)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    fig.suptitle('Task-wise Engagement\nProject(s): {}\nState(s): {}  |  District(s): {}  |  Block(s): {}'.format(projects, states, districts, blocks))
+    colors = ['red' if task_data[x] <= 30 else ('orange' if task_data[x] <= 60 else 'green') for x in sorted_keys]
+    ax.barh(sorted_keys, sorted_values, color=colors)
+    ax.set_title('Evidence submission by Task')
+    ax.set_xlabel('Percent of Teachers who submitted at least one Evidence')
+    ax.set_ylabel('Task')
+    fig.subplots_adjust(top=0.836, bottom=0.1, left=0.675, right=0.95, wspace=0.2, hspace=0.2)
+    if save:
+        plt.savefig(os.path.join(output_dir, '{}_{}.png'.format(title_string, 'TaskEngagement')),
+                    format='png', dpi=300)
+    if show:
+        plt.show()
+
+
+def plot_district_engagement():
+    pass
+
+
+def plot_block_engagement():
+    pass
 
 
 def get_project_stats(df):
