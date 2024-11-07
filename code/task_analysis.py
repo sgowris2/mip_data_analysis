@@ -57,16 +57,16 @@ class TaskAnalysis:
             'no_of_states': self.no_of_states,
             'no_of_districts': self.no_of_districts,
             'no_of_blocks': self.no_of_blocks,
-            'no_of_projects_by_state': self.no_of_projects_by_state,
-            'no_of_projects_by_district': self.no_of_projects_by_district,
-            'no_of_projects_by_block': self.no_of_projects_by_block,
+            'no_of_projects_by_state': self.no_of_projects_by_state.reset_index(),
+            'no_of_projects_by_district': self.no_of_projects_by_district.reset_index(),
+            'no_of_projects_by_block': self.no_of_projects_by_block.reset_index(),
             'total_no_of_remarks': self.remark_scores.shape[0],
             'no_of_very_positive_remarks': self.no_of_very_positive_remarks,
             'no_of_moderately_positive_remarks': self.no_of_moderately_positive_remarks,
             'no_of_neutral_remarks': self.no_of_neutral_remarks,
             'no_of_moderately_negative_remarks': self.no_of_moderately_negative_remarks,
             'no_of_very_negative_remarks': self.no_of_very_negative_remarks,
-            'remarks_list_with_sentiment_scores': self.remark_scores.to_dict()
+            'remarks_list_with_sentiment_scores': self.remark_scores.reset_index()
         }
 
     def visualize(self, dataset_name, output_dir, show_plots=True, save_plots=False):
@@ -104,15 +104,13 @@ class TaskAnalysis:
 
     def _get_projects_by_geography(self):
         self.df['teacher-project'] = self.df['uuid'] + self.df['project_title']
-        state_projects = self.df.groupby(self.df.declared_state)['teacher-project'].nunique().to_dict()
+        state_projects = self.df.groupby(self.df.declared_state)['teacher-project'].nunique().to_frame()
         self.df['state-district'] = self.df['declared_state'] + self.df['district']
         district_projects = self.df.groupby([self.df.declared_state, self.df.district])[
-            'teacher-project'].nunique().to_dict()
-        district_projects = {str(k): v for k, v in district_projects.items()}
+            'teacher-project'].nunique().to_frame()
         self.df['state-district-block'] = self.df['declared_state'] + self.df['district'] + self.df['block']
         block_projects = self.df.groupby([self.df.declared_state, self.df.district, self.df.block])[
-            'teacher-project'].nunique().to_dict()
-        block_projects = {str(k): v for k, v in block_projects.items()}
+            'teacher-project'].nunique().to_frame()
         return block_projects, district_projects, state_projects
 
     def _get_default_tasks(self):
